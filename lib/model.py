@@ -5,12 +5,10 @@ from torchvision.models import mobilenet_v2
 class ResidualBlock(nn.Module):
     def __init__(self, inp, oup):
         super(ResidualBlock, self).__init__()
-        assert stride in [1, 2]
-
         self.conv = nn.Sequential(
             # dw
-            nn.Conv2d(inp, inp, 3, stride, 1, groups=inp),
-            nn.BatchNorm2d(hidden_dim),
+            nn.Conv2d(inp, inp, 3, 1, 1, groups=inp),
+            nn.BatchNorm2d(inp),
             nn.ReLU6(inplace=True),
             # pw-linear
             nn.Conv2d(inp, oup, 1, 1, 0),
@@ -31,7 +29,7 @@ class ResidualBlock(nn.Module):
             # )
 
     def forward(self, x):
-        return x + self.conv(x)
+        return self.conv(x)
 
 
 
@@ -41,41 +39,46 @@ class SegModel(nn.Module):
 
         self.backbone = mobilenet_v2(pretrained=True).features
         
-        self.decode1 = ResidualBlock(1280, 96)
-        self.decode2 = ResidualBlock(96, 64)
-        self.decode3 = ResidualBlock(64, 32)
-        self.decode4 = ResidualBlock(32, 32)
-        self.decode5 = ResidualBlock(32, 16)
+        self.decode1 = nn.Sequential(nn.Upsample(scale_factor=2), ResidualBlock(1280, 96))
+        self.decode2 = nn.Sequential(ResidualBlock(96, 32), nn.Upsample(scale_factor=2))
+        self.decode3 = nn.Sequential(ResidualBlock(32, 24), nn.Upsample(scale_factor=2))
+        self.decode4 = nn.Sequential(ResidualBlock(24, 16), nn.Upsample(scale_factor=2))
+        
+        self.decode5 = nn.Sequential(ResidualBlock(16, 16), nn.Upsample(scale_factor=2))
         self.outp =  nn.Conv2d(16, num_cl, 3, padding=1)
 
 
     def forward(self, x):
-        for i in range(0, 1):
+        for i in range(0, 2):
             x = self.backbone[i](x)
+            print(i, x.shape)
         encode1 = x
 
-        for i in range(1, 3):
+
+        for i in range(2, 4):
             x = self.backbone[i](x)
+            print(i, x.shape)
         encode2 = x
 
-        for i in range(3, 5):
+        for i in range(4, 7):
             x = self.backbone[i](x)
+            print(i, x.shape)
         encode3 = x
 
-        for i in range(5, 8):
+        for i in range(7, 14):
             x = self.backbone[i](x)
+            print(i, x.shape)
         encode4 = x
 
-        for i in range(8, 15):
+        for i in range(14, 19):
             x = self.backbone[i](x)
-        encode5 = x
+            print(i, x.shape)
 
-        for i in range(15, 19):
-            x = self.backbone[i](x)
-
-
-
-
-
-
+        x = self.decode1(x) + encode4
+        x = self.decode2(x) + encode3
+        x = self.decode3(x) + encode2
+        x = self.decode4(x) + encode1
+        x = self.decode5(x)
+        x = self.outp(x)
+        print(x.shape)
         return x
