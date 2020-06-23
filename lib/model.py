@@ -63,9 +63,10 @@ class SegModel(nn.Module):
         self.dconv4 = nn.ConvTranspose2d(24, 16, 4, padding=1, stride=2)
         self.invres4 = InvertedResidual(32, 16, 1, 6)
 
-        self.upsample = nn.Upsample(scale_factor=2)
-        self.conv_last = nn.Conv2d(16, 3, 1)
-        self.outp =  nn.Conv2d(3, ncl-1, 1)
+        self.dconv5 = nn.ConvTranspose2d(16, 8, 4, padding=1, stride=2)
+
+        self.conv_last = nn.Conv2d(8, 4, 1)
+        self.outp =  nn.Conv2d(4, ncl-1, 1)
 
 
     def forward(self, x):
@@ -113,10 +114,9 @@ class SegModel(nn.Module):
         ], dim=1)
         x = self.invres4(x)
 
-        x = self.upsample(x)
+        x = self.dconv5(x)
         x = self.conv_last(x)
-
         x = self.outp(x)
         x = torch.sigmoid(x)
-
+        
         return x

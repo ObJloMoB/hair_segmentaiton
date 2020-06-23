@@ -26,18 +26,18 @@ def train(opts):
     model = SegModel(opts.ncl).to(device)
     
     # Define dataloaders
-    train_transform = transforms.Compose([transforms.ColorJitter(0.3, 0.3, 0.3, 0.3),
+    train_transform = transforms.Compose([#transforms.ColorJitter(0.3, 0.3, 0.3, 0.3),
                                           transforms.RandomResizedCrop(opts.size, scale=(0.8, 1.2)),
-                                          transforms.RandomAffine(10.),
-                                          transforms.RandomRotation(13.),
+                                          #transforms.RandomAffine(10.),
+                                          #transforms.RandomRotation(13.),
                                           transforms.RandomHorizontalFlip(),
                                           transforms.ToTensor(),
                                           transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                                             std= [0.229, 0.224, 0.225])])
+                                                               std=[0.229, 0.224, 0.225])])
 
     train_mask_transform = transforms.Compose([transforms.RandomResizedCrop(opts.size, scale=(0.8, 1.2)),
-                                               transforms.RandomAffine(10.),
-                                               transforms.RandomRotation(13.),
+                                               #transforms.RandomAffine(10.),
+                                               #transforms.RandomRotation(13.),
                                                transforms.RandomHorizontalFlip(),
                                                transforms.ToTensor()])
 
@@ -97,7 +97,7 @@ def train(opts):
 
             outputs_f = outputs.view(-1).float()
             labels_f = labels.view(-1).float()
-                
+
             loss = loss_criter(outputs_f, labels_f)
             
             optimizer.zero_grad()
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     parser.add_argument('--accum', help='Accumulated batches',
                         default=3, type=int)
     parser.add_argument('--save_every', help='Save every N epoch',
-                        default=5, type=int)
+                        default=10, type=int)
     parser.add_argument('--output', help='Save every N epoch',
                         default='.', type=str)
     parser.add_argument('--vis', help='Visdom visuzalizer',
