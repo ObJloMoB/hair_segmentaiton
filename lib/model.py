@@ -46,7 +46,7 @@ class InvertedResidual(nn.Module):
 
 
 class SegModel(nn.Module):
-    def __init__(self, ncl=2):
+    def __init__(self):
         super(SegModel, self).__init__()
 
         self.backbone = mobilenet_v2(pretrained=True).features
@@ -66,7 +66,7 @@ class SegModel(nn.Module):
         self.dconv5 = nn.ConvTranspose2d(16, 8, 4, padding=1, stride=2)
 
         self.conv_last = nn.Conv2d(8, 4, 1)
-        self.outp =  nn.Conv2d(4, ncl-1, 1)
+        self.outp =  nn.Conv2d(4, 1, 1)
 
 
     def forward(self, x):

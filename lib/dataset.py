@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
+import torchvision.transforms.functional as F
 
 
 class MaskDataset(Dataset):
@@ -23,16 +24,20 @@ class MaskDataset(Dataset):
 
         seed = random.randint(0, 2 ** 32)
 
-        # Apply transform to img
         random.seed(seed)
         img = Image.fromarray(img)
-        img = self.transform(img)
+        img = self.transform[0](img)
 
-        # Apply same transform to mask
+        # Rework this somehow PLS
+        gray = F.to_grayscale(img)
+        gray  = F.to_tensor(gray)
+
+        tensor = self.transform[1](img)
+
         random.seed(seed)
         mask = Image.fromarray(mask, 'L')
         mask = self.mask_transform(mask)
-        return img, mask
+        return tensor, gray, mask
 
     def __len__(self):
         return len(self.img_files)
