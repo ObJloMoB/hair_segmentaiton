@@ -65,7 +65,7 @@ class SegModel(nn.Module):
 
         self.upsample = nn.Upsample(scale_factor=2)
         self.conv_last = nn.Conv2d(16, 3, 1)
-        self.outp =  nn.Conv2d(3, ncl, 1)
+        self.outp =  nn.Conv2d(3, ncl-1, 1)
 
 
     def forward(self, x):
@@ -117,5 +117,6 @@ class SegModel(nn.Module):
         x = self.conv_last(x)
 
         x = self.outp(x)
+        x = torch.sigmoid(x)
 
         return x

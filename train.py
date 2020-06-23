@@ -69,7 +69,8 @@ def train(opts):
         intersection = (iflat * tflat).sum()
         return 1 - ((2. * intersection + smooth) / (iflat.sum() + tflat.sum() + smooth))
 
-    loss_criter = nn.CrossEntropyLoss().to(device)
+    # loss_criter = nn.CrossEntropyLoss().to(device)
+    loss_criter = nn.BCELoss().to(device)
 
     # Define optimizer
     optimizer = Adam(model.parameters(), lr=opts.lr)
@@ -91,8 +92,12 @@ def train(opts):
 
             outputs = model(inputs)
 
-            outputs_f = outputs.permute(0, 2, 3, 1).contiguous().view(-1, opts.ncl)
-            labels_f = labels.view(-1).long()
+            # outputs_f = outputs.permute(0, 2, 3, 1).contiguous().view(-1, opts.ncl)
+            # labels_f = labels.view(-1).long()
+
+            outputs_f = outputs.view(-1).float()
+            labels_f = labels.view(-1).float()
+                
             loss = loss_criter(outputs_f, labels_f)
             
             optimizer.zero_grad()
@@ -115,8 +120,11 @@ def train(opts):
 
             with torch.no_grad():
                 outputs = model(inputs)
-                outputs_f = outputs.permute(0, 2, 3, 1).contiguous().view(-1, opts.ncl)
-                labels_f = labels.view(-1).long()
+                # outputs_f = outputs.permute(0, 2, 3, 1).contiguous().view(-1, opts.ncl)
+                # labels_f = labels.view(-1).long()
+                outputs_f = outputs.view(-1).float()
+                labels_f = labels.view(-1).float()
+
                 loss = loss_criter(outputs_f, labels_f)
                 val_iou = iou(outputs, labels)
                 
@@ -130,7 +138,7 @@ def train(opts):
         scheduler.step()
 
         if (epoch + 1) % opts.save_every == 0:
-            torch.save(model, os.path.join(opts.output, f'checkpoint_e{epoch}of{opts.epoch}_lr{opts.lr:.01E}.pth'))
+            torch.save(model.state_dict(), os.path.join(opts.output, f'checkpoint_e{epoch}of{opts.epoch}_lr{opts.lr:.01E}.pth'))
 
 
 if __name__ == '__main__':
