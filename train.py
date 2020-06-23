@@ -57,7 +57,7 @@ def train(opts):
                               num_workers=1)
 
     val_loader = DataLoader(MaskDataset(*val_data, val_transform, val_mask_transform),
-                            batch_size=opts.bs,
+                            batch_size=1,
                             shuffle=False,
                             pin_memory=True,
                             num_workers=1)
@@ -101,7 +101,7 @@ def train(opts):
 
             running_loss += loss.item() * inputs.size(0)
 
-            print(f'epoch num {epoch:02d} batch num {batch_num:06d} train loss {running_loss/((batch_num+1)*inputs.size(0)):02.02f}', end='\r')
+            print(f'epoch num {epoch:02d} batch num {batch_num:04d} train loss {running_loss/((batch_num+1)*inputs.size(0)):02.04f}', end='\r')
 
         epoch_loss = running_loss / len(train_loader.dataset)
 
@@ -125,12 +125,12 @@ def train(opts):
 
         epoch_val_iou = runing_iou / len(val_loader.dataset)
         epoch_val_loss = running_loss / len(val_loader.dataset)
-        print(f'\n\nepoch num {epoch:02d} train loss {epoch_loss:02.02f} val loss {epoch_val_loss:02.02f} val iou {runing_iou:02.02f}')
+        print(f'\n\nepoch num {epoch:02d} train loss {epoch_loss:02.04f} val loss {epoch_val_loss:02.04f} val iou {runing_iou:02.04f}')
 
         scheduler.step()
 
-        if epoch % opts.save_every == 0:
-            torch.save(model, os.path.join(opts.output, f'checkpoint_e{epoch}of{opts.epoch}_lr{opts.lr:E}.pth'))
+        if (epoch + 1) % opts.save_every == 0:
+            torch.save(model, os.path.join(opts.output, f'checkpoint_e{epoch}of{opts.epoch}_lr{opts.lr:.01E}.pth'))
 
 
 if __name__ == '__main__':
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     parser.add_argument('--epoch', help='Train duration',
                         default=30, type=int)
     parser.add_argument('--bs', help='BS',
-                        default=16, type=int)
+                        default=64, type=int)
     parser.add_argument('--accum', help='Accumulated batches',
                         default=3, type=int)
     parser.add_argument('--save_every', help='Save every N epoch',
