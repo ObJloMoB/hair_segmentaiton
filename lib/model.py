@@ -34,7 +34,7 @@ class ResidualBlock(nn.Module):
 
 
 class SegModel(nn.Module):
-    def __init__(self, num_cl=2):
+    def __init__(self, ncl=2):
         super(SegModel, self).__init__()
 
         self.backbone = mobilenet_v2(pretrained=True).features
@@ -45,34 +45,33 @@ class SegModel(nn.Module):
         self.decode4 = nn.Sequential(ResidualBlock(24, 16), nn.Upsample(scale_factor=2))
         
         self.decode5 = nn.Sequential(ResidualBlock(16, 16), nn.Upsample(scale_factor=2))
-        self.outp =  nn.Conv2d(16, num_cl, 3, padding=1)
+        self.outp =  nn.Conv2d(16, ncl, 3, padding=1)
 
 
     def forward(self, x):
         for i in range(0, 2):
             x = self.backbone[i](x)
-            print(i, x.shape)
+            # print(i, x.shape)
         encode1 = x
-
 
         for i in range(2, 4):
             x = self.backbone[i](x)
-            print(i, x.shape)
+            # print(i, x.shape)
         encode2 = x
 
         for i in range(4, 7):
             x = self.backbone[i](x)
-            print(i, x.shape)
+            # print(i, x.shape)
         encode3 = x
 
         for i in range(7, 14):
             x = self.backbone[i](x)
-            print(i, x.shape)
+            # print(i, x.shape)
         encode4 = x
 
         for i in range(14, 19):
             x = self.backbone[i](x)
-            print(i, x.shape)
+            # print(i, x.shape)
 
         x = self.decode1(x) + encode4
         x = self.decode2(x) + encode3
@@ -80,5 +79,5 @@ class SegModel(nn.Module):
         x = self.decode4(x) + encode1
         x = self.decode5(x)
         x = self.outp(x)
-        print(x.shape)
+        # print(x.shape)
         return x
