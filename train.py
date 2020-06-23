@@ -89,13 +89,13 @@ def train(opts):
             inputs = inputs.to(device)
             labels = labels.to(device)
 
-            optimizer.zero_grad()
-
             outputs = model(inputs)
 
             outputs_f = outputs.permute(0, 2, 3, 1).contiguous().view(-1, opts.ncl)
             labels_f = labels.view(-1).long()
             loss = loss_criter(outputs_f, labels_f)
+            
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
