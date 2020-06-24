@@ -72,7 +72,7 @@ def train(opts):
 
     # Define optimizer
     optimizer = Adam(model.parameters(), lr=opts.lr)
-    scheduler = StepLR(optimizer, step_size=int(opts.epoch/3), gamma=0.1)
+    scheduler = StepLR(optimizer, step_size=int(opts.epoch/2), gamma=0.1)
 
     # Add visuzalizer
     if opts.vis:
@@ -83,37 +83,26 @@ def train(opts):
         # Train cycle
         running_loss = 0.0
         model.train()
-        # print(model)
-       
+
         for batch_num, (inputs, gray, labels) in enumerate(train_loader):
             inputs = inputs.to(device)
             labels = labels.to(device)
             gray = gray.to(device)
-            # with autograd.detect_anomaly():
             outputs = model(inputs)
-
-            # outputs_f = outputs.permute(0, 2, 3, 1).contiguous().view(-1, opts.ncl)
-            # labels_f = labels.view(-1).long()
 
             outputs_f = outputs.view(-1)
             labels_f = labels.view(-1)
 
             loss = loss_criter(outputs_f, labels_f)
-            # print('BCE loss', loss.shape)
-            
-            edge_loss = edge_criter(outputs, labels)
+            edge_loss = edge_criter(outputs, gray, labels)
             total_loss = loss +  opts.edge_w * edge_loss
-            # total_loss = edge_loss
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
 
-            print('loss val ab',  total_loss)
-            # print('Outp layer grad', model.outp.weight.grad)
+            running_loss += total_loss.item() * inputs.size(0)
 
-            running_loss += loss.item() * inputs.size(0)
-
-            print(f'epoch num {epoch:02d} batch num {batch_num:04d} train loss {running_loss/((batch_num+1)*inputs.size(0)):02.04f}', end='\n')
+            print(f'epoch num {epoch:02d} batch num {batch_num:04d} train loss edge {edge_loss:02.04f} bce {loss:02.04f}', end='\r')
 
         epoch_loss = running_loss / len(train_loader.dataset)
 
@@ -124,17 +113,19 @@ def train(opts):
         for inputs, gray, labels in val_loader:
             inputs = inputs.to(device)
             labels = labels.to(device)
+            gray = gray.to(device)
 
             with torch.no_grad():
                 outputs = model(inputs)
                 outputs_f = outputs.view(-1).float()
                 labels_f = labels.view(-1).float()
-                loss = 0
-                # loss = loss_criter(outputs_f, labels_f)
+                loss = loss_criter(outputs_f, labels_f)
+                edge_loss = edge_criter(outputs, gray, labels)
+                total_loss = loss +  opts.edge_w * edge_loss
                 val_iou = iou(outputs, labels)
                 
             runing_iou = val_iou.item() * inputs.size(0)
-            # running_loss += loss.item() * inputs.size(0)
+            running_loss += total_loss.item() * inputs.size(0)
 
         epoch_val_iou = runing_iou / len(val_loader.dataset)
         epoch_val_loss = running_loss / len(val_loader.dataset)

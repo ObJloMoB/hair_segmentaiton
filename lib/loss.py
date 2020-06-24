@@ -12,7 +12,7 @@ class ImageGradientLoss(_Loss):
         super(ImageGradientLoss, self).__init__(size_average, reduce, reduction)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    def forward(self, pred, gray_image):
+    def forward(self, pred, gray_image, mask):
         gradient_tensor_x = torch.Tensor([[0.0, 0.0, 0.0],
                                           [1.0, 0.0, -1.0],
                                           [0.0, 0.0, 0.0]]).to(self.device).view((1, 1, 3, 3))
@@ -20,6 +20,9 @@ class ImageGradientLoss(_Loss):
         gradient_tensor_y = torch.Tensor([[0.0, 1.0, 0.0],
                                           [0.0, 0.0, 0.0],
                                           [0.0, -1.0, 0.0]]).to(self.device).view((1, 1, 3, 3))
+
+        
+        gray_image = gray_image * mask
 
         I_x = F.conv2d(gray_image, gradient_tensor_x)
         G_x = F.conv2d(pred, gradient_tensor_x)
@@ -39,6 +42,6 @@ class ImageGradientLoss(_Loss):
         gradient = 1 - torch.pow(torch.mul(I_x, G_x) + torch.mul(I_y, G_y), 2)
         image_gradient_loss = torch.sum(torch.mul(G, gradient)) / torch.sum(G)
 
-        print('[FradLossF]', image_gradient_loss)
+        # print('[FradLossF]', image_gradient_loss)
 
         return image_gradient_loss
