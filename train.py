@@ -15,8 +15,10 @@ from time import time, sleep
 from lib.model import SegModel
 from lib.dataset import MaskDataset
 from lib.data_utils import get_all_data, split_train_val
-from lib.loss import FradLossF, ImageGradientLoss
+from lib.loss import ImageGradientLoss
 from utils.metric import iou
+
+from torch import autograd
 
 
 def train(opts):
@@ -42,11 +44,13 @@ def train(opts):
                                                transforms.RandomHorizontalFlip(),
                                                transforms.ToTensor()])
 
-    val_transform = [transforms.Resize((opts.size, opts.size)),
+    val_transform = [transforms.Compose([transforms.Resize(opts.size),
+                                         transforms.CenterCrop(opts.size)]),
                      transforms.Compose([transforms.ToTensor(),
                                         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                              std= [0.229, 0.224, 0.225])])]
-    val_mask_transform = transforms.Compose([transforms.Resize((opts.size, opts.size)),
+    val_mask_transform = transforms.Compose([transforms.Resize(opts.size),
+                                             transforms.CenterCrop(opts.size),
                                              transforms.ToTensor()])
     data = get_all_data(opts.data)
     train_data, val_data = split_train_val(*data)
@@ -64,8 +68,7 @@ def train(opts):
                             num_workers=1)
     # Define loss
     loss_criter = nn.BCELoss().to(device)
-    edge_criter = ImageGradientLoss()
-    # edge_criter = FradLossF(device)
+    edge_criter = ImageGradientLoss().to(device)
 
     # Define optimizer
     optimizer = Adam(model.parameters(), lr=opts.lr)
@@ -80,30 +83,33 @@ def train(opts):
         # Train cycle
         running_loss = 0.0
         model.train()
+        # print(model)
        
         for batch_num, (inputs, gray, labels) in enumerate(train_loader):
             inputs = inputs.to(device)
             labels = labels.to(device)
             gray = gray.to(device)
-
+            # with autograd.detect_anomaly():
             outputs = model(inputs)
 
             # outputs_f = outputs.permute(0, 2, 3, 1).contiguous().view(-1, opts.ncl)
             # labels_f = labels.view(-1).long()
 
-            outputs_f = outputs.view(-1).float()
-            labels_f = labels.view(-1).float()
-
-            # print(outputs_f.unique())
+            outputs_f = outputs.view(-1)
+            labels_f = labels.view(-1)
 
             loss = loss_criter(outputs_f, labels_f)
+            # print('BCE loss', loss.shape)
             
             edge_loss = edge_criter(outputs, labels)
             total_loss = loss +  opts.edge_w * edge_loss
-            
+            # total_loss = edge_loss
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
+
+            print('loss val ab',  total_loss)
+            # print('Outp layer grad', model.outp.weight.grad)
 
             running_loss += loss.item() * inputs.size(0)
 
@@ -123,12 +129,12 @@ def train(opts):
                 outputs = model(inputs)
                 outputs_f = outputs.view(-1).float()
                 labels_f = labels.view(-1).float()
-
-                loss = loss_criter(outputs_f, labels_f)
+                loss = 0
+                # loss = loss_criter(outputs_f, labels_f)
                 val_iou = iou(outputs, labels)
                 
             runing_iou = val_iou.item() * inputs.size(0)
-            running_loss += loss.item() * inputs.size(0)
+            # running_loss += loss.item() * inputs.size(0)
 
         epoch_val_iou = runing_iou / len(val_loader.dataset)
         epoch_val_loss = running_loss / len(val_loader.dataset)
@@ -137,7 +143,7 @@ def train(opts):
         scheduler.step()
 
         if (epoch + 1) % opts.save_every == 0:
-            torch.save(model.state_dict(), os.path.join(opts.output, f'checkpoint_e{epoch}of{opts.epoch}_lr{opts.lr:.01E}.pth'))
+            torch.save(model.state_dict(), os.path.join(opts.output, f'checkpoint_size{opts.size}_e{epoch}of{opts.epoch}_lr{opts.lr:.01E}.pth'))
 
 
 if __name__ == '__main__':

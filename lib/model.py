@@ -117,7 +117,7 @@ class SegModel(nn.Module):
         x = self.dconv5(x)
         x = self.conv_last(x)
         x = self.outp(x)
-        print('Pre sigm', x)
+        # print('Pre sigm', x)
         x = torch.sigmoid(x)
         
         return x
