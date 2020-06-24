@@ -15,7 +15,3 @@ python3 test.py --input INPUT_FLD --output OUTPUT_FLD
 ```sh
 python3 test.py --input INPUT_FLD --output OUTPUT_FLD --force_cpu
 ```
-
-# ToDo
-
-- [ ] remove/rework `utils/profiler.py`
