@@ -15,7 +15,7 @@ from time import time, sleep
 from lib.model import SegModel
 from lib.dataset import MaskDataset
 from lib.data_utils import get_all_data, split_train_val
-from lib.loss import FradLossF
+from lib.loss import FradLossF, ImageGradientLoss
 from utils.metric import iou
 
 
@@ -64,7 +64,8 @@ def train(opts):
                             num_workers=1)
     # Define loss
     loss_criter = nn.BCELoss().to(device)
-    edge_criter = FradLossF(device)
+    edge_criter = ImageGradientLoss()
+    # edge_criter = FradLossF(device)
 
     # Define optimizer
     optimizer = Adam(model.parameters(), lr=opts.lr)
@@ -96,7 +97,8 @@ def train(opts):
             # print(outputs_f.unique())
 
             loss = loss_criter(outputs_f, labels_f)
-            edge_loss = edge_criter(outputs, gray)
+            
+            edge_loss = edge_criter(outputs, labels)
             total_loss = loss +  opts.edge_w * edge_loss
             
             optimizer.zero_grad()
